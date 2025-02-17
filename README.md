@@ -20,8 +20,12 @@ The goal of this project is to allow people to easily calculate house rent price
 - Power BI Desktop to visualize the `.pbix` file
 
 ## 📊 Screenshots and Sample Data
+BCRA API
 ![image](https://github.com/user-attachments/assets/5532cd33-b2f0-44b0-922e-af2487627109)
+
+Power BI dashboard
 ![image](https://github.com/user-attachments/assets/afb5a87a-ff33-4965-978a-e9e191f8717a)
+![image](https://github.com/user-attachments/assets/49ff6508-cfd3-40d4-bf8b-4dd7f1695204)
 
 ## 🔍 Technical Considerations
 - The Fabric notebook is responsible for data extraction, cleaning, and transformation.
