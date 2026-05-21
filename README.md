@@ -1,3 +1,8 @@
+![Microsoft Fabric](https://img.shields.io/badge/Microsoft-Fabric-blue)
+![Power BI](https://img.shields.io/badge/PowerBI-Analytics-yellow)
+![Spark](https://img.shields.io/badge/Apache-Spark-orange)
+![Delta Lake](https://img.shields.io/badge/Delta-Lake-green)
+
 # Rent Calculator Argentina
 
 End-to-end analytics engineering project built on Microsoft Fabric for calculating rental adjustments in Argentina using inflation indexes and the Casa Propia coefficient.
