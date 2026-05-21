@@ -1,33 +1,148 @@
-# Power BI Rent Calculator Argentina
+# Rent Calculator Argentina
 
-## 📌 Introduction
-This project consists of a Power BI dashboard that calculates rent values in Argentina, using public data from the BCRA API and the government data portal (datos.gob.ar). The solution includes data processing in a Microsoft Fabric notebook, storage in a Fabric Lakehouse, and a final structured model in a Fabric Data Warehouse, which is then visualized in Power BI.
+End-to-end analytics engineering project built on Microsoft Fabric for calculating rental adjustments in Argentina using inflation indexes and the Casa Propia coefficient.
+The solution implements a Medallion Architecture with automated ingestion pipelines, Delta Lake processing, semantic modeling, and interactive reporting in Power BI.
 
-## 🎯 Objetive
-The goal of this project is to allow people to easily calculate house rent price adjustments based on the IPC (Consumer Price Index) in Argentina. Inflation in Argentina is among the highest in the world, so most rental contracts are indexed to inflation using the IPC.
+## Project Overview
+This project automates the ingestion, transformation, storage, and visualization of Argentine economic indicators used for rental contract adjustments.
+The platform integrates multiple public data sources, processes them through a Lakehouse architecture in Microsoft Fabric, and exposes curated analytical tables through a Power BI semantic model.
+The final solution combines:
+* Data Engineering
+* Lakehouse Architecture
+* Incremental ETL Pipelines
+* Delta Lake Tables
+* Semantic Modeling
+* Business Intelligence Visualization
 
-## 🏗️ Project Architecture
-1. **Data Extraction**: Data is retrieved from the BCRA API and datos.gob.ar.
-2. **Data Processing in Fabric Notebook**: The extracted data is processed and cleaned in a Microsoft Fabric notebook.
-3. **Storage in Fabric Lakehouse**: The cleaned data is stored in a Fabric Lakehouse.
-4. **Data Warehouse in Fabric**: Data is structured and optimized for queries.
-5. **Power BI Dashboard**: The Data Warehouse is connected to Power BI for visualization.
+## Architecture
+<img width="1722" height="222" alt="Screenshot 2026-05-21 165138" src="https://github.com/user-attachments/assets/9be62c9e-1c59-4627-8365-d9c3c4ee32d2" />
+1. External Sources
+2. Fabric Data Factory Pipelines
+3. Bronze Lakehouse (Raw Files)
+4. Fabric Spark Notebooks
+5. Silver Lakehouse (Delta Tables)
+6. Fabric SQL Endpoint
+7. Power BI Semantic Model (PBIP)
+8. Interactive Dashboard
 
-## 🚀 Installation and Usage
-### Prerequisites
-- Python 3.x with the following libraries: `pandas`, `requests`, `pyodbc`
-- Microsoft Fabric with a configured Data Warehouse and Lakehouse
-- Power BI Desktop to visualize the `.pbix` file
+## Tech Stack
+* Microsoft Fabric
+* Fabric Lakehouse
+* Fabric Data Factory
+* Apache Spark
+* Delta Lake
+* Python
+* Power BI
+* PBIP (Power BI Project)
+* SQL Endpoint
 
-## 📊 Screenshots and Sample Data
-BCRA API
-![image](https://github.com/user-attachments/assets/5532cd33-b2f0-44b0-922e-af2487627109)
+## Data Sources
+The project currently integrates:
+* Argentine Inflation Index (IPC)
+* Casa Propia Coefficient
+These datasets are automatically ingested from publicly available sources and transformed into curated analytical tables.
 
-Power BI dashboard
-![image](https://github.com/user-attachments/assets/afb5a87a-ff33-4965-978a-e9e191f8717a)
-![image](https://github.com/user-attachments/assets/49ff6508-cfd3-40d4-bf8b-4dd7f1695204)
+## Engineering Features
+### Medallion Architecture
+The solution follows a layered Lakehouse design:
+#### Bronze Layer
+* Raw ingestion
+* Source preservation
+* Historical snapshots
+#### Silver Layer
+* Curated Delta tables
+* Standardized schemas
+* Incremental processing
+* Deduplication logic
+* Type enforcement
 
-## 🔍 Technical Considerations
-- The Fabric notebook is responsible for data extraction, cleaning, and transformation.
-- The Lakehouse acts as intermediate storage before structuring the data in the Data Warehouse.
-- The Data Warehouse is optimized for efficient querying in Power BI.
+## Incremental ETL Processing
+The Silver layer implements idempotent incremental ingestion using business date validation and anti-join strategies to prevent duplicate processing.
+Example features:
+* Incremental append logic
+* Duplicate prevention
+* Schema standardization
+* Atomic write patterns
+
+## Delta Lake Integration
+Curated datasets are persisted as Delta Tables in Fabric Lakehouse to support:
+* SQL Endpoint querying
+* Power BI connectivity
+* Transactional consistency
+* Scalable analytical workloads
+
+## Operational Logging
+All ETL notebooks generate execution logs including:
+* Execution timestamp
+* Process status
+* Source file processed
+* Rows ingested
+* Total rows in Silver layer
+
+## Pipeline Orchestration
+ETL execution is orchestrated through Fabric Data Factory pipelines, enabling automated and repeatable data refresh workflows.
+
+## Repository Structure
+
+```text
+fabric-rent-calculator-argentina/
+│
+├── README.md
+│
+├── architecture/
+│   ├── medallion_architecture.png
+│   ├── data_flow.png
+│   └── semantic_model.png
+│
+├── notebooks/
+│   ├── bronze/
+│   │   ├── ipc_download.py
+│   │   └── casapropia_download.py
+│   │
+│   └── silver/
+│       ├── ipc_silver.py
+│       └── casapropia_silver.py
+│
+├── powerbi/
+│   ├── RentCalculatorArgentina.pbip
+│   ├── semantic_model/
+│   └── reports/
+│
+├── screenshots/
+│   ├── fabric_pipeline.png
+│   ├── lakehouse_tables.png
+│   ├── sql_endpoint.png
+│   ├── semantic_model.png
+│   └── dashboard.png
+│
+└── docs/
+    ├── architecture.md
+    ├── orchestration.md
+    └── data_model.md
+```
+
+## Power BI Integration
+The curated Silver Delta tables are exposed through the Fabric SQL Endpoint and consumed by a Power BI semantic model developed using PBIP.
+The reporting layer provides:
+* Rental adjustment calculations
+* Inflation trend analysis
+* Casa Propia coefficient evolution
+* Comparative metrics
+
+## Future Improvements
+Potential future enhancements include:
+* MERGE-based upsert logic
+* Historical versioning
+* Gold analytical layer
+* Automated testing
+* CI/CD integration
+* Data quality validation framework
+* Partition optimization
+* Near real-time ingestion
+
+## Dashboard Preview
+<img width="1425" height="792" alt="image" src="https://github.com/user-attachments/assets/63ef6783-7222-4490-8b7a-823b2cc1f79b" />
+<img width="1422" height="790" alt="image" src="https://github.com/user-attachments/assets/d82e339a-f903-4752-94b5-9a5fdba5243f" />
+
+
+
