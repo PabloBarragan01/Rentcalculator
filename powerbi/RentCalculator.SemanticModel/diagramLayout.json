@@ -1,0 +1,191 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 1136,
+            "y": 25
+          },
+          "nodeIndex": "_Measures",
+          "nodeLineageTag": "74e0a194-e6df-4ce1-86fb-6727dac96a0f",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 4
+        },
+        {
+          "location": {
+            "x": 785.21287760405266,
+            "y": 79.624806568303484
+          },
+          "nodeIndex": "Fact_CasaPropia",
+          "nodeLineageTag": "21d02e17-48e7-4da3-816e-8fa157f6209f",
+          "size": {
+            "height": 189.54364865448156,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 0
+          },
+          "nodeIndex": "Fact_IPCdata",
+          "nodeLineageTag": "0f847421-cf1d-47c3-a599-814df0e7bee5",
+          "size": {
+            "height": 658.40124804668676,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 390.716695818836,
+            "y": 4.5528325376201764
+          },
+          "nodeIndex": "Dim_DateTable",
+          "nodeLineageTag": "d859e997-5a50-42b5-b4c5-587019319e59",
+          "size": {
+            "height": 249.34150238713949,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 848.78577640769709,
+            "y": 586.88353464355544
+          },
+          "nodeIndex": "Par_Frequency",
+          "nodeLineageTag": "3fa2902a-af71-4afb-aa08-fc1cd0e05010",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 860.4350435937381,
+            "y": 420.74891687064149
+          },
+          "nodeIndex": "Par_InitialValue",
+          "nodeLineageTag": "ee8ffb39-f370-403f-aa19-9b1b0f8926bc",
+          "size": {
+            "height": 104,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 548.84157530234029,
+            "y": 490.21401201059712
+          },
+          "nodeIndex": "Par_StartDate",
+          "nodeLineageTag": "b2f90d75-4991-481c-9255-98646cd5a707",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 82.8680150023673,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    },
+    {
+      "ordinal": 1,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 496.36163941535983,
+            "y": 245
+          },
+          "nodeIndex": "Fact_IPCdata",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 169.1847511806298,
+            "y": 0
+          },
+          "nodeIndex": "Dim_DateTable",
+          "size": {
+            "height": 164,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "IPC",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    },
+    {
+      "ordinal": 2,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 806,
+            "y": 71
+          },
+          "nodeIndex": "Fact_CasaPropia",
+          "size": {
+            "height": 128,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 377,
+            "y": 197
+          },
+          "nodeIndex": "Dim_DateTable",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "CP",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

@@ -1,0 +1,277 @@
+table _Measures
+	lineageTag: 74e0a194-e6df-4ce1-86fb-6727dac96a0f
+
+	measure 'Months after Start date' =
+			// measure 'Months after Start date' returns number of whole months from the selected start date to the current month context
+			VAR FechaActual = SELECTEDVALUE(Dim_DateTable[firstday]) 
+			VAR FechaInicio = [Selected start date]
+			RETURN
+			DATEDIFF(FechaInicio, FechaActual, MONTH)
+		formatString: 0
+		displayFolder: IPC
+		lineageTag: cc139990-e200-4f77-83ca-3fb10349ee73
+
+	measure Check =
+			// measure Check determines whether the current month is a renewal month based on frequency and elapsed months
+			VAR MesesTranscurridos = [Months after Start date]
+			VAR PeriodoRenovacion = 0 // Usar SELECTEDVALUE
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    MesesTranscurridos < 0, 0, // Si los meses transcurridos son negativos, devuelve vacío
+			    [Months after Start date] / Par_Frequency[Frecuencia Value] = int([Months after Start date] / SELECTEDVALUE(Par_Frequency[Frecuencia])), 1,
+			    0 // En cualquier otro caso (división decimal), devuelve vacío
+			)
+		displayFolder: IPC
+		lineageTag: 2f517a5c-fe45-4321-8fef-cde8f1213ebf
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Amount IPC' = ```
+			// measure 'Amount IPC' calculates the amount adjusted by the accumulated IPC index
+			/* --Amount[Amount Value] * (1+[IPC Acumulado])
+			            max(Monto[Monto]) * (1+[IPC Acumulado]) */
+			            
+			// v3
+			VAR __IPC = [Accumulated IPC]
+			RETURN
+			    IF(
+			        ISBLANK(__IPC),
+			        BLANK(),
+			        MAX(Par_InitialValue[Amount]) * (1 + __IPC)
+			    )
+			```
+		displayFolder: IPC
+		lineageTag: 3d95fc21-864b-4df0-af82-e135af679915
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Accumulated IPC' = ```
+			// measure 'Accumulated IPC' computes the accumulated IPC inflation factor since the start date
+			/*
+			VAR StartDate = MIN(Inicio[DateStart]) -- Fecha seleccionada por el usuario
+			VAR CurrentDate = MAX(DateTable[Date]) -- Fecha en la visualización
+			RETURN /*
+			calculate(max(IPC[ipc_ng_nacional]),
+			DateTable[Date] = SELECTEDVALUE(DateTable[firstday]))
+			-
+			CALCULATE(sum(IPC[ipc_ng_nacional]),
+			DateTable[Date] = SELECTEDVALUE(Inicio[DateStart]))
+			*/
+			
+			(DIVIDE(
+			CALCULATE(
+			    MAX(IPC_data[ipc_ng_nacional]),
+			    DateTable[Date] = EDATE(SELECTEDVALUE(DateTable[firstday]), -1)
+			),
+			CALCULATE(
+			    MAX(IPC_data[ipc_ng_nacional]),
+			    DateTable[Date] = EDATE(
+			            DATE(YEAR(MAX(Inicio[DateStart])), MONTH(MAX(Inicio[DateStart])), 1), -1)
+			)
+			))-1 */
+			
+			//v3
+			VAR __IndiceActual =
+			    CALCULATE(
+			        MAX(Fact_IPCdata[ipc_ng_nacional]),
+			        Dim_DateTable[Date] = EDATE(SELECTEDVALUE(Dim_DateTable[firstday]), -1)
+			    )
+			
+			VAR __IndiceBase =
+			    CALCULATE(
+			        MAX(Fact_IPCdata[ipc_ng_nacional]),
+			        Dim_DateTable[Date] = EDATE(
+			            DATE(YEAR(MAX(Par_StartDate[DateStart])), MONTH(MAX(Par_StartDate[DateStart])), 1), -1)
+			    )
+			
+			RETURN
+			    IF(
+			        ISBLANK(__IndiceActual) || ISBLANK(__IndiceBase),
+			        BLANK(),
+			        DIVIDE(__IndiceActual, __IndiceBase) - 1
+			    )
+			
+			
+			```
+		formatString: 0.00
+		displayFolder: IPC
+		lineageTag: 092f130a-f5dd-49b1-8d4c-bd3d15837608
+
+	measure 'IPC chart' = ```
+		// measure 'IPC chart' returns the monthly IPC variation rate for charting
+		
+			/*
+			SUM(IPC[IPC]) -
+			calculate(sum(IPC[IPC]),
+			                dateadd(DateTable[Date],-1,MONTH))
+			*/
+			sum(Fact_IPCdata[ipc_ng_nacional_tasa_variacion_mensual])
+			```
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: IPC_Chart
+		lineageTag: 2f5c464f-e6f5-4013-8916-44cdadf707c5
+
+	measure ColorMeasure = ```
+		// measure ColorMeasure chooses Green or Red based on whether monthly IPC change is negative or positive
+		
+			IF(SUM(Fact_IPCdata[ipc_ng_nacional_tasa_variacion_mensual]) -
+			calculate(sum(Fact_IPCdata[ipc_ng_nacional_tasa_variacion_mensual]),
+			                dateadd(Dim_DateTable[Date],-1,MONTH)) < 0, "Green", "Red")  -- Green for negative, Red for positive
+		```
+		displayFolder: IPC_Chart
+		lineageTag: 53886942-a101-41bc-9260-a1e7ba30b911
+
+	measure 'IPC MoM %' = ```
+		// measure 'IPC MoM %' computes the month-over-month IPC percentage change used in charts
+		
+			SUM(Fact_IPCdata[ipc_ng_nacional_tasa_variacion_mensual]) -
+			calculate(sum(Fact_IPCdata[ipc_ng_nacional_tasa_variacion_mensual]),
+			                dateadd(Dim_DateTable[Date],-1,MONTH))
+							```
+		displayFolder: IPC_Chart
+		lineageTag: 53fa6af6-71a4-48a8-ae7e-7a77cd792866
+
+		formatStringDefinition = "▲0.0%;▼0.0%;0.0%"
+
+	measure 'Fixed rent CasaPropia' = ```
+		// measure 'Fixed rent CasaPropia' computes the adjusted fixed rent using CasaPropia index coefficients and the selected update frequency
+			
+			
+			VAR __MontoBase          = MAX(Par_InitialValue[Amount])
+			VAR __FechaInicio = DATE(YEAR(MAX(Par_StartDate[DateStart])), MONTH(MAX(Par_StartDate[DateStart])), 1)
+			VAR __Frecuencia         = [Frecuencia Value]          -- SELECTEDVALUE con default 3
+			VAR __FechaContexto      = MAX(Dim_DateTable[firstday])    -- primer día del mes en la visual
+			
+			-- ¿Cuántos meses completos pasaron desde el inicio?
+			VAR __MesesDesdeInicio   =
+			    DATEDIFF(__FechaInicio, __FechaContexto, MONTH)
+			
+			-- Solo mostrar desde el mes de inicio en adelante
+			VAR __EsValido           = __MesesDesdeInicio >= 0
+			
+			-- ¿A qué "ciclo" de actualización pertenece este mes?
+			-- Ciclo 0 = meses 0 a (Frecuencia-1), Ciclo 1 = meses Frecuencia a (2*Frecuencia-1), etc.
+			VAR __CicloActual        = INT(__MesesDesdeInicio / __Frecuencia)
+			
+			-- El índice acumulado se calcula hasta el ÚLTIMO mes del ciclo ANTERIOR
+			-- Es decir, hasta (__FechaInicio + __CicloActual * __Frecuencia - 1 mes)
+			-- Para el ciclo 0, no hay ajuste aún → factor = 1
+			VAR __FechaFinAjuste     =
+			    --EDATE(__FechaInicio, __CicloActual * __Frecuencia - 1)
+			    EDATE(__FechaInicio, __CicloActual * __Frecuencia)
+			
+			-- Tabla de índices desde el inicio hasta FechaFinAjuste (solo si CicloActual > 0)
+			VAR __TablaFactores =
+			    FILTER(
+			        ALL('Fact_CasaPropia'),
+			        'Fact_CasaPropia'[Mes] > __FechaInicio
+			            && 'Fact_CasaPropia'[Mes] <= __FechaFinAjuste
+			    )
+			
+			VAR __FactorAcumulado =
+			    IF(
+			        __CicloActual = 0,
+			        1,                              -- Primer período: sin ajuste
+			        PRODUCTX(__TablaFactores, 'Fact_CasaPropia'[Coeficiente])
+			    )
+			
+			VAR __Resultado = __MontoBase * __FactorAcumulado
+			
+			RETURN
+			    IF(__EsValido, __Resultado, BLANK())
+		```
+		displayFolder: CasaPropia
+		lineageTag: 2a6a86c7-3cc2-443d-996f-e63315ac8a3e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Index CasaPropia Month' = ```
+		// measure 'Index CasaPropia Month' returns the monthly CasaPropia index coefficient for the current date context
+			
+			IF(ISBLANK([Fixed rent CasaPropia]),"",
+			
+			CALCULATE(
+			    MAX(Fact_CasaPropia[Coeficiente]),
+			    TREATAS(
+			        VALUES(Dim_DateTable[firstday]),
+			        Fact_CasaPropia[Mes]
+			    )
+			)
+			
+			)
+		```	
+		displayFolder: CasaPropia
+		lineageTag: 77f50a6c-1598-453b-81b2-98d91353ed07
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Is Update Month CasaPropia' = ```
+		// measure 'Is Update Month CasaPropia' flags whether the current month should update the CasaPropia rent based on the configured frequency
+			
+			
+			VAR __FechaInicio     = DATE(YEAR(MAX(Par_StartDate[DateStart])), MONTH(MAX(Par_StartDate[DateStart])), 1)
+			VAR __FechaContexto   = MAX(Dim_DateTable[firstday])
+			VAR __Frecuencia      = [Frecuencia Value]
+			
+			VAR __MesesDesdeInicio = DATEDIFF(__FechaInicio, __FechaContexto, MONTH)
+			
+			RETURN
+			    IF(
+			        __MesesDesdeInicio = 0
+			            || (__MesesDesdeInicio > 0 && MOD(__MesesDesdeInicio, __Frecuencia) = 0),
+			        1,
+			        0
+			    )
+		```
+		formatString: 0
+		displayFolder: CasaPropia
+		lineageTag: 487831f2-3fb9-4c36-9a81-9a8537565a5f
+
+	measure 'Selected start date' = ```
+		max('Par_StartDate'[DateStart])
+		// measure 'Selected start date' returns the selected start date from the parameter table
+		```
+		formatString: General Date
+		lineageTag: 611866e3-bcea-4a11-ba7e-69d908321beb
+
+	measure 'CasaPropia MoM %' = ```
+		// measure 'CasaPropia MoM %' computes the month-over-month CasaPropia coefficient change for the current context
+		
+			SUM(Fact_CasaPropia[coeficiente]) -
+			calculate(sum(Fact_CasaPropia[coeficiente]),
+						dateadd(Dim_DateTable[Date],-1,MONTH))
+						```
+		displayFolder: CasaPropia
+		lineageTag: 7683d651-62c1-4e64-a60d-240487e4f78c
+
+		formatStringDefinition = "▲0.00%;▼0.00%;0.0%"
+
+	measure 'ColorMeasure CasaPropia' = ```
+		// measure 'ColorMeasure CasaPropia' chooses Green or Red text based on CasaPropia month-over-month index change
+		
+			IF(SUM(Fact_CasaPropia[Coeficiente]) -
+			calculate(sum(Fact_CasaPropia[Coeficiente]),
+				                dateadd(Dim_DateTable[Date],-1,MONTH)) < 0, "Green", "Red")  -- Green for negative, Red for positive
+		```
+		displayFolder: CasaPropia
+		lineageTag: 994b95bd-7ec1-40b1-8b32-73dcce19f60b
+
+	column Column
+		isHidden
+		formatString: 0
+		lineageTag: 84aa804e-c64b-4e99-8bcc-7cfc45ab7205
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Column]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = Row("Column", BLANK())
+
+	annotation PBI_Id = c7ca36ae911b48f98de71597437265b5
+
+	annotation 436ba87b-9c83-4389-a31b-ebd06a36be98 = {"Expression":""}
+

@@ -1,0 +1,52 @@
+table Fact_CasaPropia
+	lineageTag: 21d02e17-48e7-4da3-816e-8fa157f6209f
+
+	column Mes
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 6377f4a8-0dbe-44f7-9d66-6f9685332a16
+		summarizeBy: none
+		sourceColumn: Mes
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Coeficiente
+		dataType: double
+		formatString: 0.000
+		lineageTag: 345c5260-c9c9-4f14-b721-fa8547330d8c
+		summarizeBy: sum
+		sourceColumn: Coeficiente
+
+		annotation SummarizationSetBy = Automatic
+
+	column Indice
+		dataType: string
+		lineageTag: 5cde602a-f452-43ae-8cbd-00412a78e098
+		summarizeBy: none
+		sourceColumn: Indice
+
+		annotation SummarizationSetBy = Automatic
+
+	column Formula
+		dataType: string
+		lineageTag: f13fcf42-ef4a-4e25-9499-b71c29e970c9
+		summarizeBy: none
+		sourceColumn: Formula
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Fact_CasaPropia = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database(FabricDB, "LH_silver"),
+				    dbo_ipc_base = Source{[Schema="dbo",Item="casapropia_base"]}[Data]
+				in
+				    dbo_ipc_base
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

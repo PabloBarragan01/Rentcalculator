@@ -1,0 +1,8 @@
+relationship 02f62964-5496-df3d-f6de-2af4647f4b87
+	fromColumn: Fact_IPCdata.indice_tiempo
+	toColumn: Dim_DateTable.Date
+
+relationship eae734c0-74bc-dd2a-db92-f166ad9414d1
+	fromColumn: Fact_CasaPropia.Mes
+	toColumn: Dim_DateTable.Date
+

@@ -1,0 +1,237 @@
+table Fact_IPCdata
+	lineageTag: 0f847421-cf1d-47c3-a599-814df0e7bee5
+
+	column indice_tiempo
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: e61e24a4-0608-49ce-882e-8aef0bd0d70c
+		summarizeBy: none
+		sourceColumn: indice_tiempo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column ipc_ng_nacional
+		dataType: double
+		lineageTag: 569ab0b3-3dfa-4ee6-b580-3ebe2457994c
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nacional
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_gba
+		dataType: double
+		lineageTag: bb31fc17-60c5-4d1d-93b5-ae568458776c
+		summarizeBy: sum
+		sourceColumn: ipc_ng_gba
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_pampeana
+		dataType: double
+		lineageTag: ae10409b-b5bf-40c5-b9b9-a629b346aeef
+		summarizeBy: sum
+		sourceColumn: ipc_ng_pampeana
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_nea
+		dataType: double
+		lineageTag: 1ac6e9ac-95ef-4088-954c-32a59a4dcdad
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nea
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_noa
+		dataType: double
+		lineageTag: 3efdec54-03b3-458c-b46a-55a96b31f35a
+		summarizeBy: sum
+		sourceColumn: ipc_ng_noa
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_cuyo
+		dataType: double
+		lineageTag: 867d13c4-2028-46cb-87ee-bd248ecef538
+		summarizeBy: sum
+		sourceColumn: ipc_ng_cuyo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_patagonia
+		dataType: double
+		lineageTag: 1ff25294-8405-400e-927e-c056592a8bfb
+		summarizeBy: sum
+		sourceColumn: ipc_ng_patagonia
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_nacional_tasa_variacion_mensual
+		dataType: double
+		lineageTag: 2d350810-0de2-4b72-a2ba-8b697b34d5d9
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nacional_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_gba_tasa_variacion_mensual
+		dataType: double
+		lineageTag: 5212e35a-3eb9-4068-8d1b-a0fb549accbc
+		summarizeBy: sum
+		sourceColumn: ipc_ng_gba_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_pampeana_tasa_variacion_mensual
+		dataType: double
+		lineageTag: 73a072b9-db5a-48dd-8af8-f3205f87abb3
+		summarizeBy: sum
+		sourceColumn: ipc_ng_pampeana_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_nea_tasa_variacion_mensual
+		dataType: double
+		lineageTag: 8fedf1dd-3820-4804-95a8-cf4b300f015e
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nea_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_noa_tasa_variacion_mensual
+		dataType: double
+		lineageTag: f43f1698-f6f4-437f-b48b-687a6db6f0b0
+		summarizeBy: sum
+		sourceColumn: ipc_ng_noa_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_cuyo_tasa_variacion_mensual
+		dataType: double
+		lineageTag: c380eeec-6075-48a5-9d43-1487625f5bca
+		summarizeBy: sum
+		sourceColumn: ipc_ng_cuyo_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_patagonia_tasa_variacion_mensual
+		dataType: double
+		lineageTag: 714ba537-f3c3-4d36-b790-fa8a145b3a65
+		summarizeBy: sum
+		sourceColumn: ipc_ng_patagonia_tasa_variacion_mensual
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_nacional_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: a38f5633-5367-44f1-96dc-dfcda7a31b0d
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nacional_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_gba_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: 2b3615de-7d56-4de4-84ee-d70c003f035c
+		summarizeBy: sum
+		sourceColumn: ipc_ng_gba_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_pampeana_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: a196a3b7-0bbf-42f9-a20d-1ac8e872360a
+		summarizeBy: sum
+		sourceColumn: ipc_ng_pampeana_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_nea_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: c2213e2d-30ea-4c27-8117-266cf581baea
+		summarizeBy: sum
+		sourceColumn: ipc_ng_nea_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_noa_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: 15d4f24b-64be-4af3-a357-e9d67adae9f3
+		summarizeBy: sum
+		sourceColumn: ipc_ng_noa_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_cuyo_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: c2cf8c21-f3d9-4806-8937-d6b942f27e35
+		summarizeBy: sum
+		sourceColumn: ipc_ng_cuyo_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ipc_ng_patagonia_tasa_variacion_acumulada_dic_ano_anterior
+		dataType: double
+		lineageTag: a5d905c4-9543-4409-9ebc-597afe29c9a5
+		summarizeBy: sum
+		sourceColumn: ipc_ng_patagonia_tasa_variacion_acumulada_dic_ano_anterior
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Fact_IPCdata = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database(FabricDB, "LH_silver"),
+				    dbo_ipc_base = Source{[Schema="dbo",Item="ipc_base"]}[Data]
+				in
+				    dbo_ipc_base
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

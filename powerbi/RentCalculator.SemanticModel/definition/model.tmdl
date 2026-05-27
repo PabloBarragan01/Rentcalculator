@@ -1,0 +1,24 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["Fact_CasaPropia","Par_InitialValue","Fact_IPCdata","FabricDB"]
+
+annotation PBI_ProTooling = ["TMDLView_Desktop","DaxQueryView_Desktop","DevMode","TMDL-Extension"]
+
+ref table Fact_CasaPropia
+ref table Par_Frequency
+ref table _Measures
+ref table Dim_DateTable
+ref table Par_StartDate
+ref table Par_InitialValue
+ref table Fact_IPCdata
+
+ref cultureInfo en-US
+

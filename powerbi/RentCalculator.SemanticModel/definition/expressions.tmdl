@@ -1,0 +1,7 @@
+expression FabricDB = "FabricDB" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 66dd2ebc-0a50-43ae-82fa-389916908fc7
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+

@@ -1,0 +1,807 @@
+createOrReplace
+
+	model Model
+		culture: en-US
+		defaultPowerBIDataSourceVersion: powerBI_V3
+		sourceQueryCulture: en-US
+		dataAccessOptions
+			legacyRedirects
+			returnErrorValuesAsNull
+
+		table CasaPropia
+			lineageTag: 21d02e17-48e7-4da3-816e-8fa157f6209f
+
+			column Index
+				dataType: double
+				formatString: 0.00000
+				lineageTag: a19397b8-49cb-412f-bac5-6c6059135f02
+				summarizeBy: none
+				sourceColumn: Index
+
+				changedProperty = SortByColumn
+
+				annotation SummarizationSetBy = User
+
+			column Month-Year
+				dataType: dateTime
+				formatString: Long Date
+				lineageTag: 7354f35b-266c-4cc0-a9ac-9d3114ee9adf
+				summarizeBy: none
+				sourceColumn: Month-Year
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation UnderlyingDateTimeDataType = Date
+
+			partition CasaPropia = m
+				mode: import
+				source =
+						let
+						    Source = Excel.Workbook(File.Contents("C:\Users\pablo\OneDrive\Portfolio\Rent Calculator\V2\CasaPropia.xlsx"), null, true),
+						    Sheet1_Sheet = Source{[Item="Sheet1",Kind="Sheet"]}[Data],
+						    #"Promoted Headers" = Table.PromoteHeaders(Sheet1_Sheet, [PromoteAllScalars=true]),
+						    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Month", type date}, {"Index", type number}}),
+						    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Month", "Month-Year"}}),
+						    #"Divided Column" = Table.TransformColumns(#"Renamed Columns", {{"Index", each _ / 10000, type number}})
+						in
+						    #"Divided Column"
+
+			annotation PBI_ResultType = Table
+
+			annotation PBI_NavigationStepName = Navigation
+
+		table Frecuencia
+			lineageTag: 3fa2902a-af71-4afb-aa08-fc1cd0e05010
+
+			measure 'Frecuencia Value' = SELECTEDVALUE('Frecuencia'[Frecuencia], 3)
+				formatString: 0
+				lineageTag: 0f47eaec-2052-42cb-bd1a-1a812fd393c8
+
+			column Frecuencia
+				formatString: 0
+				lineageTag: 7b6ba3b1-8048-483d-aac4-c88369514706
+				summarizeBy: none
+				sourceColumn: [Value]
+
+				extendedProperty ParameterMetadata = {"version":0}
+
+				annotation SummarizationSetBy = User
+
+			partition Frecuencia = calculated
+				mode: import
+				source = GENERATESERIES(3, 36, 3)
+
+			annotation PBI_Id = 0bd5cff924d547c19e63ef32a14f6eef
+
+		table Amount
+			lineageTag: 16a06c19-5158-4059-8bb3-c1d98f372ba9
+
+			measure 'Amount Value' = SELECTEDVALUE('Amount'[Amount], 0)
+				formatString: 0
+				lineageTag: be39fcb7-6f00-4820-9319-b9d398c0b2e4
+
+			column Amount
+				formatString: 0
+				lineageTag: 816e3061-0871-4e24-ac70-e88320f33cfb
+				summarizeBy: none
+				sourceColumn: [Value]
+
+				extendedProperty ParameterMetadata = {"version":0}
+
+				annotation SummarizationSetBy = User
+
+			partition Amount = calculated
+				mode: import
+				source = GENERATESERIES(0, 2000000, 1000)
+
+			annotation PBI_Id = 00e0313f2b4a4f0a9d0fe859fc8ad3c6
+
+		table _Measures
+			lineageTag: 74e0a194-e6df-4ce1-86fb-6727dac96a0f
+
+			measure 'Fecha de Inicio Seleccionada' = max('Inicio'[DateStart])
+				formatString: Short Date
+				displayFolder: IPC
+				lineageTag: eb1fb264-d32a-4f6d-b82c-242674717a21
+
+			measure 'Meses Transcurridos desde el Inicio' =
+					
+					VAR FechaActual = [FechaActual] // Usamos SELECTEDVALUE aquí para la tarjeta
+					VAR FechaInicio = [Fecha de Inicio Seleccionada]
+					RETURN
+					DATEDIFF(FechaInicio, FechaActual, MONTH)
+				formatString: 0
+				displayFolder: IPC
+				lineageTag: cc139990-e200-4f77-83ca-3fb10349ee73
+
+			measure FechaActual = SELECTEDVALUE(DateTable[firstday])
+				formatString: General Date
+				displayFolder: IPC
+				lineageTag: c52d8830-dd8e-4c66-99ef-a89743ffc2d5
+
+			measure Check =
+					
+					VAR MesesTranscurridos = [Meses Transcurridos desde el Inicio]
+					VAR PeriodoRenovacion = 0 // Usar SELECTEDVALUE
+					RETURN
+					SWITCH(
+					    TRUE(),
+					    MesesTranscurridos < 0, 0, // Si los meses transcurridos son negativos, devuelve vacío
+					    [Meses Transcurridos desde el Inicio] / Frecuencia[Frecuencia Value] = int([Meses Transcurridos desde el Inicio] / SELECTEDVALUE(Frecuencia[Frecuencia])), 1,
+					    0 // En cualquier otro caso (división decimal), devuelve vacío
+					)
+				displayFolder: IPC
+				lineageTag: 2f517a5c-fe45-4321-8fef-cde8f1213ebf
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'Amount IPC' =
+					--Amount[Amount Value] * (1+[IPC Acumulado])
+					            max(Monto[Monto]) * (1+[IPC Acumulado])
+				displayFolder: IPC
+				lineageTag: 3d95fc21-864b-4df0-af82-e135af679915
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'IPC Acumulado' =
+					
+					VAR StartDate = MIN(Inicio[DateStart]) -- Fecha seleccionada por el usuario
+					VAR CurrentDate = MAX(DateTable[Date]) -- Fecha en la visualización
+					RETURN /*
+					calculate(max(IPC[ipc_ng_nacional]),
+					DateTable[Date] = SELECTEDVALUE(DateTable[firstday]))
+					-
+					CALCULATE(sum(IPC[ipc_ng_nacional]),
+					DateTable[Date] = SELECTEDVALUE(Inicio[DateStart]))
+					*/
+					
+					(DIVIDE(
+					CALCULATE(
+					    MAX(IPC_data[ipc_ng_nacional]),
+					    DateTable[Date] = EDATE(SELECTEDVALUE(DateTable[firstday]), -1)
+					),
+					CALCULATE(
+					    MAX(IPC_data[ipc_ng_nacional]),
+					    DateTable[Date] = EDATE(
+					            DATE(YEAR(MAX(Inicio[DateStart])), MONTH(MAX(Inicio[DateStart])), 1), -1)
+					)
+					))-1
+				displayFolder: IPC
+				lineageTag: 092f130a-f5dd-49b1-8d4c-bd3d15837608
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'IPC grafico' =
+					
+					/*
+					SUM(IPC[IPC]) -
+					calculate(sum(IPC[IPC]),
+					                dateadd(DateTable[Date],-1,MONTH))
+					*/
+					sum(IPC_data[ipc_ng_nacional_tasa_variacion_mensual])
+				formatString: 0.0%;-0.0%;0.0%
+				displayFolder: IPC
+				lineageTag: 2f5c464f-e6f5-4013-8916-44cdadf707c5
+
+			measure ColorMeasure =
+					
+					IF(SUM(IPC_data[ipc_ng_nacional_tasa_variacion_mensual]) -
+					calculate(sum(IPC_data[ipc_ng_nacional_tasa_variacion_mensual]),
+					                dateadd(DateTable[Date],-1,MONTH)) < 0, "Green", "Red")  -- Green for negative, Red for positive
+				displayFolder: IPC
+				lineageTag: 53886942-a101-41bc-9260-a1e7ba30b911
+
+			measure 'IPC MoM %' =
+					
+					SUM(IPC_data[ipc_ng_nacional_tasa_variacion_mensual]) -
+					calculate(sum(IPC_data[ipc_ng_nacional_tasa_variacion_mensual]),
+					                dateadd(DateTable[Date],-1,MONTH))
+				displayFolder: IPC
+				lineageTag: 53fa6af6-71a4-48a8-ae7e-7a77cd792866
+
+				formatStringDefinition = "▲0.0%;▼0.0%;0.0%"
+
+			measure 'Max date' = max(IPC_data[indice_tiempo])
+				formatString: mmmm yyyy
+				lineageTag: 88004e77-8e56-4fcc-b5cf-ab2eccb6fe99
+
+				annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+			measure CasaPropia_1 =
+					
+					
+					VAR _Monto = max(Monto[Monto])
+					VAR _Fecha = max(Inicio[DateStart])
+					
+					RETURN
+					IF(max(DateTable[firstday]) > _Fecha,
+					_Monto*max(CasaPropia[Index]),"")
+				lineageTag: 64a5f9ff-2833-46f3-9e17-37f0a3322ea6
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure CasaPropia_2 =
+					
+					VAR __MontoBase = SELECTEDVALUE(Monto[Monto])
+					VAR __FechaInicioContrato = SELECTEDVALUE(Inicio[DateStart])
+					VAR __FechaContexto = MAX(DateTable[Date]) // Captura la fecha del mes que se está calculando en la visual
+					
+					// 1. Crear una tabla de factores desde el inicio del contrato hasta la fecha de la fila actual
+					VAR __TablaFactores =
+					    FILTER(
+					        ALL('CasaPropia'), // Ignora filtros externos en la tabla de índices
+					        'CasaPropia'[Month-Year] >= __FechaInicioContrato && 'CasaPropia'[Month-Year] <= __FechaContexto
+					    )
+					
+					// 2. Calcular el Factor de Ajuste Acumulado (Productiva de los índices)
+					VAR __FactorAcumulado =
+					    PRODUCTX(
+					        __TablaFactores,
+					        'CasaPropia'[Index] // Multiplica todos los valores de 'Index' en el rango
+					    )
+					
+					// 3. Calcular el Alquiler Ajustado
+					VAR __MontoAjustado = __MontoBase * __FactorAcumulado
+					
+					RETURN
+					    // Solo devuelve el valor si tenemos un monto base y la fecha actual es posterior o igual a la fecha de inicio
+					    IF(
+					        NOT ISBLANK(__MontoBase) && __FechaContexto >= __FechaInicioContrato,
+					        __MontoAjustado,
+					        BLANK()
+					    )
+				lineageTag: 040336e2-c03d-44da-9cf3-a86d805dcbfe
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'Alquiler Ajustado ICASA - FINAL' = ```
+					
+					// **********************************
+					// DECLARACIÓN DE VARIABLES (FUERA DE CUALQUIER IF PRINCIPAL)
+					// **********************************
+					VAR __MontoBase = SELECTEDVALUE(Monto[Monto])
+					VAR __FechaInicioContrato = SELECTEDVALUE(Inicio[DateStart])
+					VAR __FechaContexto = MAX(DateTable[Date])
+					
+					// 1. Establecer el rango de fechas dinámico para el cálculo
+					VAR __RangoFechas =
+					    DATESBETWEEN(
+					        DateTable[Date], // Columna de fecha de la tabla Calendario
+					        __FechaInicioContrato,
+					        __FechaContexto
+					    )
+					
+					// 2. Calcular el Factor de Ajuste Acumulado (PRODUCTX dentro de CALCULATE)
+					VAR __FactorAcumulado =
+					    CALCULATE(
+					        PRODUCTX(
+					            'CasaPropia', // Itera sobre la tabla CasaPropia
+					            'CasaPropia'[Index] // Multiplica la columna de índice
+					        ),
+					        // Aplicamos el rango de fechas calculado
+					        REMOVEFILTERS('CasaPropia'),
+					        __RangoFechas
+					    )
+					
+					// 3. Calcular el Alquiler Ajustado
+					VAR __MontoAjustado = __MontoBase * __FactorAcumulado
+					
+					// **********************************
+					// RETORNO Y VALIDACIONES
+					// **********************************
+					RETURN
+					    // Validación principal: solo calcular si tenemos ambos parámetros y estamos en el período correcto
+					
+					        __MontoAjustado
+					
+					    
+					```
+				lineageTag: 683760cd-1d73-489e-8bd9-716dfa44f6b1
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'Medida Prueba Factor Acumulado' = ```
+					
+					VAR __MontoBase = SELECTEDVALUE(Monto[Monto])
+					VAR __FechaInicioContrato = SELECTEDVALUE(Inicio[DateStart])
+					VAR __FechaContexto = MAX(DateTable[Date])
+					
+					// VERIFICACIÓN CLAVE: Si alguno de los parámetros es BLANK, la medida final será BLANK.
+					IF(
+					    ISBLANK(__MontoBase) || ISBLANK(__FechaInicioContrato),
+					    // Si falta un parámetro, retornamos 0 para debugging (o podemos retornar BLANK())
+					    0,
+					
+					    // 1. Establecer el rango de fechas dinámico (DEBE FUNCIONAR SI LAS FECHAS ESTÁN RELACIONADAS)
+					    VAR __RangoFechas =
+					        DATESBETWEEN(
+					            'DateTable'[Date], // Columna de fecha de tu calendario
+					            __FechaInicioContrato,
+					            __FechaContexto
+					        )
+					
+					    // 2. Calcular el Factor de Ajuste Acumulado (el valor que sospechamos falla)
+					    VAR __FactorAcumulado =
+					        CALCULATE(
+					            PRODUCTX(
+					                'CasaPropia',
+					                'CasaPropia'[Index]
+					            ),
+					            REMOVEFILTERS('CasaPropia'),
+					            __RangoFechas // Este es el filtro que probablemente no está funcionando
+					        )
+					    
+					    RETURN
+					        // Retornamos el Factor Acumulado para verlo en cada fila
+					        __FactorAcumulado
+					)
+					```
+				lineageTag: a53cf811-1b4a-48d0-b394-a755107f7daa
+
+			measure 'Alquiler Ajustado ICASA - FINAL V3' = ```
+					
+					VAR __MontoBase = SELECTEDVALUE(Monto[Monto])
+					VAR __FechaInicioContrato = SELECTEDVALUE(Inicio[DateStart])
+					VAR __FechaContexto = MAX(DateTable[Date])
+					
+					VAR __RangoFechas =
+					    DATESBETWEEN(
+					        'DateTable'[Date], 
+					        __FechaInicioContrato,
+					        __FechaContexto
+					    )
+					
+					VAR __FactorAcumulado =
+					    CALCULATE(
+					        PRODUCTX(
+					            'CasaPropia', 
+					            'CasaPropia'[Index] 
+					        ),
+					        REMOVEFILTERS('CasaPropia'),
+					        __RangoFechas 
+					    )
+					
+					VAR __MontoAjustado = __MontoBase * __FactorAcumulado
+					
+					RETURN
+					        __MontoAjustado
+					```
+				lineageTag: 83843463-a9ae-48da-a7b1-66ddbf7e0057
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			measure 'Alquiler Ajustado ICASA - ÚLTIMA VERSIÓN' =
+					
+					// DECLARACIÓN DE VARIABLES
+					VAR __MontoBase = max(Monto[Monto])
+					VAR __FechaInicioContrato = max(Inicio[DateStart])
+					VAR __FechaContexto = MAX(DateTable[Date]) // Fecha de la fila o contexto
+					
+					// 1. Crear la tabla virtual de factores A PARTIR de la tabla completa de índices
+					VAR __TablaFactoresFiltrada =
+					    FILTER(
+					        ALL('CasaPropia'), // Ignora cualquier filtro externo
+					        'CasaPropia'[Month-Year] >= __FechaInicioContrato && 'CasaPropia'[Month-Year] <= __FechaContexto
+					    )
+					
+					// 2. Calcular el Factor de Ajuste Acumulado (Productiva de la tabla filtrada)
+					VAR __FactorAcumulado =
+					    PRODUCTX(
+					        __TablaFactoresFiltrada,
+					        'CasaPropia'[Index] // Multiplica la columna de índice
+					    )
+					
+					// 3. Calcular el Alquiler Ajustado
+					VAR __MontoAjustado = __MontoBase * __FactorAcumulado
+					
+					// RETORNO Y VALIDACIÓN DEL RESULTADO
+					RETURN
+					    // Solo devuelve el monto ajustado si todos los parámetros existen y el mes es correcto
+					
+					        __MontoAjustado
+				lineageTag: ed3ecdf9-5bbb-4373-a43c-75231fb83d0a
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column Column
+				isHidden
+				formatString: 0
+				lineageTag: 84aa804e-c64b-4e99-8bcc-7cfc45ab7205
+				summarizeBy: sum
+				isNameInferred
+				sourceColumn: [Column]
+
+				annotation SummarizationSetBy = Automatic
+
+			partition _Measures = calculated
+				mode: import
+				source = Row("Column", BLANK())
+
+			annotation PBI_Id = c7ca36ae911b48f98de71597437265b5
+
+			annotation 436ba87b-9c83-4389-a31b-ebd06a36be98 = {"Expression":""}
+
+		table DateTable
+			lineageTag: d859e997-5a50-42b5-b4c5-587019319e59
+
+			column Date
+				formatString: General Date
+				lineageTag: 5380dded-b751-4cd5-b2f7-f8a137b58a2e
+				summarizeBy: none
+				isNameInferred
+				sourceColumn: [Date]
+
+				annotation SummarizationSetBy = Automatic
+
+			column Month = format(DateTable[Date],"mmmm")
+				lineageTag: 19dbebe0-38cb-4f9a-b8ce-71cc7c0a4e10
+				summarizeBy: none
+				sortByColumn: 'Month n'
+
+				annotation SummarizationSetBy = Automatic
+
+			column Year = format(DateTable[Date],"yyyy")
+				lineageTag: 17277740-4d7c-4b3a-b2b8-1ced91ad7b8d
+				summarizeBy: none
+
+				annotation SummarizationSetBy = Automatic
+
+			column 'Month n' = month(DateTable[Date])
+				formatString: 0
+				lineageTag: a68f169c-664a-48e5-83ff-889b8aaecfd3
+				summarizeBy: none
+
+				annotation SummarizationSetBy = Automatic
+
+			column firstday = STARTOFMONTH(DateTable[Date])
+				formatString: Short Date
+				lineageTag: fbd32b8e-ec39-4636-8266-2d9689adc39c
+				summarizeBy: none
+
+				annotation SummarizationSetBy = Automatic
+
+			column 'Año Mes texto' = format(DateTable[Date],"mmm-yy")
+				lineageTag: bb1e99a4-fd3d-420a-911c-9da07c27883c
+				summarizeBy: none
+				sortByColumn: firstday
+
+				annotation SummarizationSetBy = Automatic
+
+			partition DateTable = calculated
+				mode: import
+				source = CALENDAR(MIN(IPC_data[indice_tiempo]), EOMONTH(MAX(IPC_data[indice_tiempo]),0))
+
+			annotation PBI_Id = ebb47c5f2de04ac9a299b4ea23326d0a
+
+		table Inicio
+			lineageTag: b2f90d75-4991-481c-9255-98646cd5a707
+
+			column DateStart
+				formatString: Short Date
+				lineageTag: 2248ff7a-2655-4a10-bc3a-409c2b55c75f
+				summarizeBy: none
+				sourceColumn: [Date]
+
+				annotation SummarizationSetBy = Automatic
+
+			partition Inicio = calculated
+				mode: import
+				source = CALENDAR(MIN(IPC_data[indice_tiempo]), MAX('CasaPropia'[Month-Year]))
+
+			annotation PBI_Id = 3009b7fba7d948c7905d3370ffb951de
+
+		table Fin
+			lineageTag: 046a5a1b-f19f-49b6-81e7-8e4e0e274c59
+
+			column DateEnd
+				formatString: General Date
+				lineageTag: 53e3ce08-b184-41d8-b84c-61a29fd9e221
+				summarizeBy: none
+				sourceColumn: [Date]
+
+				annotation SummarizationSetBy = Automatic
+
+			partition Fin = calculated
+				mode: import
+				source = CALENDAR(MIN('CasaPropia'[Month-Year]), MAX('CasaPropia'[Month-Year]))
+
+			annotation PBI_Id = 13cd36f60dec4ba2903b9b3b0e700e07
+
+		table Duracion
+			lineageTag: 32867e7e-d1b6-4e95-9d95-2dcb63297e08
+
+			column Value
+				formatString: 0
+				lineageTag: 73be8054-3ee9-485b-ba94-c0eef091395a
+				summarizeBy: sum
+				isNameInferred
+				sourceColumn: [Value]
+
+				annotation SummarizationSetBy = Automatic
+
+			partition Duracion = calculated
+				mode: import
+				source = GENERATESERIES(1, 36, 1)
+
+			annotation PBI_Id = 2b30e8fc313f49bfa53b82d41c39e69f
+
+		table Monto
+			lineageTag: ee8ffb39-f370-403f-aa19-9b1b0f8926bc
+
+			column Monto
+				dataType: int64
+				formatString: 0
+				lineageTag: 5603c0d7-76bc-4e7d-b036-2b4c797eb6ef
+				summarizeBy: sum
+				sourceColumn: Monto
+
+				annotation SummarizationSetBy = Automatic
+
+			partition Monto = m
+				mode: import
+				source =
+						let
+						    Source = {1..3000000},
+						    #"Converted to Table" = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+						    #"Renamed Columns" = Table.RenameColumns(#"Converted to Table",{{"Column1", "Monto"}}),
+						    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Monto", Int64.Type}})
+						in
+						    #"Changed Type"
+
+			annotation PBI_NavigationStepName = Navigation
+
+			annotation PBI_ResultType = Table
+
+		table IPC_data
+			lineageTag: 0f847421-cf1d-47c3-a599-814df0e7bee5
+
+			column indice_tiempo
+				dataType: dateTime
+				formatString: Long Date
+				lineageTag: e61e24a4-0608-49ce-882e-8aef0bd0d70c
+				summarizeBy: none
+				sourceColumn: indice_tiempo
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation UnderlyingDateTimeDataType = Date
+
+			column ipc_ng_nacional
+				dataType: double
+				lineageTag: 569ab0b3-3dfa-4ee6-b580-3ebe2457994c
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nacional
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_gba
+				dataType: double
+				lineageTag: bb31fc17-60c5-4d1d-93b5-ae568458776c
+				summarizeBy: sum
+				sourceColumn: ipc_ng_gba
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_pampeana
+				dataType: double
+				lineageTag: ae10409b-b5bf-40c5-b9b9-a629b346aeef
+				summarizeBy: sum
+				sourceColumn: ipc_ng_pampeana
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_nea
+				dataType: double
+				lineageTag: 1ac6e9ac-95ef-4088-954c-32a59a4dcdad
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nea
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_noa
+				dataType: double
+				lineageTag: 3efdec54-03b3-458c-b46a-55a96b31f35a
+				summarizeBy: sum
+				sourceColumn: ipc_ng_noa
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_cuyo
+				dataType: double
+				lineageTag: 867d13c4-2028-46cb-87ee-bd248ecef538
+				summarizeBy: sum
+				sourceColumn: ipc_ng_cuyo
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_patagonia
+				dataType: double
+				lineageTag: 1ff25294-8405-400e-927e-c056592a8bfb
+				summarizeBy: sum
+				sourceColumn: ipc_ng_patagonia
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_nacional_tasa_variacion_mensual
+				dataType: double
+				lineageTag: 2d350810-0de2-4b72-a2ba-8b697b34d5d9
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nacional_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_gba_tasa_variacion_mensual
+				dataType: double
+				lineageTag: 5212e35a-3eb9-4068-8d1b-a0fb549accbc
+				summarizeBy: sum
+				sourceColumn: ipc_ng_gba_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_pampeana_tasa_variacion_mensual
+				dataType: double
+				lineageTag: 73a072b9-db5a-48dd-8af8-f3205f87abb3
+				summarizeBy: sum
+				sourceColumn: ipc_ng_pampeana_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_nea_tasa_variacion_mensual
+				dataType: double
+				lineageTag: 8fedf1dd-3820-4804-95a8-cf4b300f015e
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nea_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_noa_tasa_variacion_mensual
+				dataType: double
+				lineageTag: f43f1698-f6f4-437f-b48b-687a6db6f0b0
+				summarizeBy: sum
+				sourceColumn: ipc_ng_noa_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_cuyo_tasa_variacion_mensual
+				dataType: double
+				lineageTag: c380eeec-6075-48a5-9d43-1487625f5bca
+				summarizeBy: sum
+				sourceColumn: ipc_ng_cuyo_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_patagonia_tasa_variacion_mensual
+				dataType: double
+				lineageTag: 714ba537-f3c3-4d36-b790-fa8a145b3a65
+				summarizeBy: sum
+				sourceColumn: ipc_ng_patagonia_tasa_variacion_mensual
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_nacional_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: a38f5633-5367-44f1-96dc-dfcda7a31b0d
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nacional_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_gba_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: 2b3615de-7d56-4de4-84ee-d70c003f035c
+				summarizeBy: sum
+				sourceColumn: ipc_ng_gba_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_pampeana_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: a196a3b7-0bbf-42f9-a20d-1ac8e872360a
+				summarizeBy: sum
+				sourceColumn: ipc_ng_pampeana_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_nea_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: c2213e2d-30ea-4c27-8117-266cf581baea
+				summarizeBy: sum
+				sourceColumn: ipc_ng_nea_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_noa_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: 15d4f24b-64be-4af3-a357-e9d67adae9f3
+				summarizeBy: sum
+				sourceColumn: ipc_ng_noa_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_cuyo_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: c2cf8c21-f3d9-4806-8937-d6b942f27e35
+				summarizeBy: sum
+				sourceColumn: ipc_ng_cuyo_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			column ipc_ng_patagonia_tasa_variacion_acumulada_dic_ano_anterior
+				dataType: double
+				lineageTag: a5d905c4-9543-4409-9ebc-597afe29c9a5
+				summarizeBy: sum
+				sourceColumn: ipc_ng_patagonia_tasa_variacion_acumulada_dic_ano_anterior
+
+				annotation SummarizationSetBy = Automatic
+
+				annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+			partition IPC_data = m
+				mode: import
+				source =
+						let
+						    Source = Csv.Document(File.Contents("C:\Users\pablo\OneDrive\Portfolio\Indices\Calculadora alquiler\indice-precios-al-consumidor-nivel-general-base-diciembre-2016-mensual (5).csv"),[Delimiter=",", Columns=22, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+						    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+						    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"indice_tiempo", type date}, {"ipc_ng_nacional", type number}, {"ipc_ng_gba", type number}, {"ipc_ng_pampeana", type number}, {"ipc_ng_nea", type number}, {"ipc_ng_noa", type number}, {"ipc_ng_cuyo", type number}, {"ipc_ng_patagonia", type number}, {"ipc_ng_nacional_tasa_variacion_mensual", type number}, {"ipc_ng_gba_tasa_variacion_mensual", type number}, {"ipc_ng_pampeana_tasa_variacion_mensual", type number}, {"ipc_ng_nea_tasa_variacion_mensual", type number}, {"ipc_ng_noa_tasa_variacion_mensual", type number}, {"ipc_ng_cuyo_tasa_variacion_mensual", type number}, {"ipc_ng_patagonia_tasa_variacion_mensual", type number}, {"ipc_ng_nacional_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_gba_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_pampeana_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_nea_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_noa_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_cuyo_tasa_variacion_acumulada_dic_ano_anterior", type number}, {"ipc_ng_patagonia_tasa_variacion_acumulada_dic_ano_anterior", type number}})
+						in
+						    #"Changed Type"
+
+			annotation PBI_NavigationStepName = Navigation
+
+			annotation PBI_ResultType = Table
+
+		relationship 02f62964-5496-df3d-f6de-2af4647f4b87
+			fromColumn: IPC_data.indice_tiempo
+			toColumn: DateTable.Date
+
+		cultureInfo en-US
+
+			linguisticMetadata = {"Version":"4.1.0","Language":"en-US","Entities":{"casa_propia":{"Definition":{"Binding":{"ConceptualEntity":"CasaPropia"}},"State":"Generated","Terms":[{"casa propia":{"State":"Generated"}},{"CasaPropia":{"Type":"Noun","State":"Generated","Weight":0.99}}]},"casa_propia.index":{"Definition":{"Binding":{"ConceptualEntity":"CasaPropia","ConceptualProperty":"Index"}},"State":"Generated","Terms":[{"index":{"State":"Generated"}},{"directory":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"catalogue":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"catalog":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"guide":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"file":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"key":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"manifestation":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"pointer":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"indication":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"indicator":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.452}}]},"renewal_period":{"Definition":{"Binding":{"ConceptualEntity":"Frecuencia"}},"State":"Generated","Terms":[{"frecuencia":{"State":"Generated","Weight":0.87}}]},"renewal_period.renewal_period":{"Definition":{"Binding":{"ConceptualEntity":"Frecuencia","ConceptualProperty":"Frecuencia"}},"State":"Generated","Terms":[{"frecuencia":{"State":"Generated"}},{"Frecuencia de actualización":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}]},"renewal_period.RenewalPeriod_value":{"Definition":{"Binding":{"ConceptualEntity":"Frecuencia","ConceptualProperty":"Frecuencia Value"}},"State":"Generated","Terms":[{"frecuencia value":{"State":"Generated"}},{"frecuencia assessment":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"frecuencia worth":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"frecuencia price":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"frecuencia cost":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"frecuencia charge":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"frecuencia rate":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"frecuencia importance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"frecuencia significance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"frecuencia usefulness":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"frecuencia consequence":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}}]},"amount":{"Definition":{"Binding":{"ConceptualEntity":"Amount"}},"State":"Generated","Terms":[{"amount":{"State":"Generated","Weight":0.87}},{"volume":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"expanse":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"extent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"aggregate":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}}]},"amount.amount":{"Definition":{"Binding":{"ConceptualEntity":"Amount","ConceptualProperty":"Amount"}},"State":"Generated","Terms":[{"amount":{"State":"Generated"}},{"volume":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"expanse":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"extent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"aggregate":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}}]},"amount.amount_value":{"Definition":{"Binding":{"ConceptualEntity":"Amount","ConceptualProperty":"Amount Value"}},"State":"Generated","Terms":[{"amount value":{"State":"Generated"}},{"amount assessment":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"amount worth":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"amount price":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"amount cost":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"amount charge":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"amount rate":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"amount importance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"amount significance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"amount usefulness":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}},{"amount consequence":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.475}}]},"v_Measures_measure":{"Definition":{"Binding":{"ConceptualEntity":"_Measures"}},"State":"Generated","Terms":[{"_measure":{"State":"Generated"}},{"_ degree":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"_ quantity":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"_ quota":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"_ extent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"_ amount":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"_ portion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"_ ration":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"_ size":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}}]},"v_Measures_measure.column":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"Column"}},"State":"Generated","Visibility":{"Value":"Hidden"},"Terms":[{"column":{"State":"Generated"}},{"pilaster":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"pier":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"pillar":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"post":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"support":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"stake":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"pole":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"buttress":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"underpinning":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"contribution":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}}]},"date_table":{"Definition":{"Binding":{"ConceptualEntity":"DateTable"}},"State":"Generated","Terms":[{"date table":{"State":"Generated"}},{"DateTable":{"Type":"Noun","State":"Generated","Weight":0.99}},{"moment table":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.6}},{"period table":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.582}},{"date tabletop":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"date bench":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date board":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date counter":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date stand":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date slab":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date desk":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date stall":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}}]},"date_table.date":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"Date"}},"State":"Generated","Terms":[{"date":{"State":"Generated"}},{"moment":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"period":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.714}}],"SemanticType":"Time"},"date_table.month":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"Month"}},"State":"Generated","Terms":[{"month":{"State":"Generated"}},{"mth":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}}]},"date_table.year":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"Year"}},"State":"Generated","Terms":[{"year":{"State":"Generated"}},{"yr":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}}]},"date_table.month_n":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"Month n"}},"State":"Generated","Terms":[{"month n":{"State":"Generated"}},{"n":{"State":"Generated","Weight":0.97}},{"mth n":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.6}}]},"inicio":{"Definition":{"Binding":{"ConceptualEntity":"Inicio"}},"State":"Generated","Terms":[{"inicio":{"State":"Generated"}}]},"inicio.date":{"Definition":{"Binding":{"ConceptualEntity":"Inicio","ConceptualProperty":"DateStart"}},"State":"Generated","Terms":[{"date start":{"State":"Generated"}},{"DateStart":{"Type":"Noun","State":"Generated","Weight":0.99}},{"date":{"State":"Generated","Weight":0.7}},{"start":{"State":"Generated","Weight":0.97}},{"moment start":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.6}},{"period start":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.582}},{"date twitch":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date jump":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date jerk":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date flinch":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"date jolt":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"twitch":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"jump":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"jerk":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"Inicio":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}],"SemanticType":"Time"},"fin":{"Definition":{"Binding":{"ConceptualEntity":"Fin"}},"State":"Generated","Terms":[{"fin":{"State":"Generated"}},{"appendage":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"limb":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"organ":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"member":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"flipper":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"paddle":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"projection":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"propeller":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"rudder":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"stabilizer":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.452}}]},"fin.date":{"Definition":{"Binding":{"ConceptualEntity":"Fin","ConceptualProperty":"DateEnd"}},"State":"Generated","Terms":[{"date end":{"State":"Generated"}},{"DateEnd":{"Type":"Noun","State":"Generated","Weight":0.99}},{"date":{"State":"Generated","Weight":0.7}},{"end":{"State":"Generated","Weight":0.97}},{"date completion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.75}},{"date conclusion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.75}},{"date expiration":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.75}},{"completion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"conclusion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"expiration":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"date close":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}},{"date finish":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}},{"date last":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}},{"date stop":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}}],"SemanticType":"Time"},"v_Measures_measure.fecha_de_inicio_seleccionada":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"Fecha de Inicio Seleccionada"}},"State":"Generated","Terms":[{"fecha de inicio seleccionada":{"State":"Generated"}},{"date":{"State":"Generated","Weight":0.7}}],"SemanticType":"Time"},"v_Measures_measure.meses_transcurridos_desde_el_inicio":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"Meses Transcurridos desde el Inicio"}},"State":"Generated","Terms":[{"meses transcurridos desde el inicio":{"State":"Generated"}}]},"v_Measures_measure.fecha_actual":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"FechaActual"}},"State":"Generated","Terms":[{"fecha actual":{"State":"Generated"}},{"FechaActual":{"Type":"Noun","State":"Generated","Weight":0.99}},{"date":{"State":"Generated","Weight":0.7}},{"fecha real":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}},{"fecha existent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}},{"fecha tangible":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.727}}],"SemanticType":"Time"},"v_Measures_measure.check":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"Check"}},"State":"Generated","Terms":[{"check":{"State":"Generated"}},{"cheque":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"checkup":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"inspection":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"payment":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.736}},{"test":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.714}},{"tick":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.714}},{"bill":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.714}},{"safety inspection":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.571}},{"safety test":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.571}}]},"date_table.firstday":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"firstday"}},"State":"Generated","Terms":[{"firstday":{"State":"Generated"}},{"Update Date":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}],"SemanticType":"Time"},"duracion":{"Definition":{"Binding":{"ConceptualEntity":"Duracion"}},"State":"Generated","Terms":[{"duracion":{"State":"Generated"}}]},"duracion.value":{"Definition":{"Binding":{"ConceptualEntity":"Duracion","ConceptualProperty":"Value"}},"State":"Generated","Terms":[{"value":{"State":"Generated"}},{"assessment":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"worth":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"price":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"cost":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"charge":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"rate":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.476}},{"importance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"significance":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"usefulness":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}},{"consequence":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.466}}]},"v_Measures_measure.amount_IPC":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"Amount IPC"}},"State":"Generated","Terms":[{"amount IPC":{"State":"Generated"}},{"Value $":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}]},"v_Measures_measure.IPC_acumulado1":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"IPC Acumulado"}},"State":"Generated","Terms":[{"IPC acumulado":{"State":"Generated"}},{"Accumulated IPC":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}]},"v_Measures_measure.IPC_grafico":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"IPC grafico"}},"State":"Generated","Terms":[{"IPC grafico":{"State":"Generated"}},{"IPC":{"State":"Suggested","Source":{"Type":"External","Agent":"PowerBI.VisualColumnRename"},"Weight":0.9}}]},"v_Measures_measure.color_measure":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"ColorMeasure"}},"State":"Generated","Terms":[{"color measure":{"State":"Generated"}},{"ColorMeasure":{"Type":"Noun","State":"Generated","Weight":0.99}},{"measure":{"State":"Generated","Weight":0.97}},{"color degree":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"color quantity":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"color quota":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"color extent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.5}},{"degree":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"quota":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"extent":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.491}},{"color amount":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"color portion":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}},{"color ration":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.485}}]},"v_Measures_measure.IPC_MoM_":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"IPC MoM %"}},"State":"Generated","Terms":[{"IPC MoM %":{"State":"Generated"}},{"ipc mom percentage":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.762}},{"ipc mom pct":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.739}}]},"v_Measures_measure.v_IPC_MoM___FormatString_IPC_MoM__FormatString":{"Definition":{"Binding":{"ConceptualEntity":"_Measures","ConceptualProperty":"_IPC MoM % FormatString"}},"State":"Generated","Visibility":{"Value":"Hidden"},"Terms":[{"_IPC MoM % FormatString":{"State":"Generated"}},{"_ipc mom percentage formatstring":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.624}},{"_ipc mom pct formatstring":{"Type":"Noun","State":"Suggested","Source":{"Agent":"Thesaurus"},"Weight":0.605}}]},"monto":{"Definition":{"Binding":{"ConceptualEntity":"Monto"}},"State":"Generated","Terms":[{"monto":{"State":"Generated","Weight":0.87}}]},"monto.monto":{"Definition":{"Binding":{"ConceptualEntity":"Monto","ConceptualProperty":"Monto"}},"State":"Generated","Terms":[{"monto":{"State":"Generated"}}]},"date_table.año_mes_texto":{"Definition":{"Binding":{"ConceptualEntity":"DateTable","ConceptualProperty":"Año Mes texto"}},"State":"Generated","Terms":[{"año mes texto":{"State":"Generated"}},{"año me texto":{"Type":"Noun","State":"Generated","Weight":0.78}}]}},"Relationships":{"date_table_has_casa_propia":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"casa_propia":{"Target":{"Entity":"casa_propia"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"casa_propia"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_casa_propias"},{"Attribute":{"Subject":{"Role":"casa_propia"},"Object":{"Role":"date_table"}},"State":"Generated","Weight":0.99,"ID":"casa_propias_have_date_tables"}]},"date_table_has_año_mes_texto":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.año_mes_texto":{"Target":{"Entity":"date_table.año_mes_texto"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.año_mes_texto"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_año_mes_textos"}]},"monto_has_monto":{"Binding":{"ConceptualEntity":"Monto"},"State":"Generated","Roles":{"monto":{"Target":{"Entity":"monto"}},"monto.monto":{"Target":{"Entity":"monto.monto"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"monto"},"Object":{"Role":"monto.monto"}},"State":"Generated","Weight":0.99,"ID":"monto_have_monto"}]},"v_Measures_measure_has_color_measure":{"Binding":{"ConceptualEntity":"_Measures"},"State":"Generated","Roles":{"v_Measures_measure":{"Target":{"Entity":"v_Measures_measure"}},"v_Measures_measure.color_measure":{"Target":{"Entity":"v_Measures_measure.color_measure"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"v_Measures_measure"},"Object":{"Role":"v_Measures_measure.color_measure"}},"State":"Generated","Weight":0.99,"ID":"Phrasing_measures_have_color_measure"}]},"monto_has_v_Measures_measure_amount_IPC":{"Binding":{"ConceptualEntity":"Monto"},"State":"Generated","Roles":{"monto":{"Target":{"Entity":"monto"}},"v_Measures_measure.amount_IPC":{"Target":{"Entity":"v_Measures_measure.amount_IPC"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"monto"},"Object":{"Role":"v_Measures_measure.amount_IPC"}},"State":"Generated","Weight":0.99,"ID":"monto_have_amount_IPC"}]},"duracion_has_value":{"Binding":{"ConceptualEntity":"Duracion"},"State":"Generated","Roles":{"duracion":{"Target":{"Entity":"duracion"}},"duracion.value":{"Target":{"Entity":"duracion.value"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"duracion"},"Object":{"Role":"duracion.value"}},"State":"Generated","Weight":0.99,"ID":"duracions_have_values"}]},"date_table_has_firstday":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.firstday":{"Target":{"Entity":"date_table.firstday"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.firstday"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_firstdays"}]},"v_Measures_measure_has_check":{"Binding":{"ConceptualEntity":"_Measures"},"State":"Generated","Roles":{"v_Measures_measure":{"Target":{"Entity":"v_Measures_measure"}},"v_Measures_measure.check":{"Target":{"Entity":"v_Measures_measure.check"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"v_Measures_measure"},"Object":{"Role":"v_Measures_measure.check"}},"State":"Generated","Weight":0.99,"ID":"Phrasing_measures_have_check"}]},"v_Measures_measure_has_fecha_actual":{"Binding":{"ConceptualEntity":"_Measures"},"State":"Generated","Roles":{"v_Measures_measure":{"Target":{"Entity":"v_Measures_measure"}},"v_Measures_measure.fecha_actual":{"Target":{"Entity":"v_Measures_measure.fecha_actual"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"v_Measures_measure"},"Object":{"Role":"v_Measures_measure.fecha_actual"}},"State":"Generated","Weight":0.99,"ID":"Phrasing_measures_have_fecha_actual"}]},"v_Measures_measure_has_meses_transcurridos_desde_el_inicio":{"Binding":{"ConceptualEntity":"_Measures"},"State":"Generated","Roles":{"v_Measures_measure":{"Target":{"Entity":"v_Measures_measure"}},"v_Measures_measure.meses_transcurridos_desde_el_inicio":{"Target":{"Entity":"v_Measures_measure.meses_transcurridos_desde_el_inicio"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"v_Measures_measure"},"Object":{"Role":"v_Measures_measure.meses_transcurridos_desde_el_inicio"}},"State":"Generated","Weight":0.99,"ID":"Phrasing_measures_have_meses_transcurridos_desde_el_inicio"}]},"inicio_has_v_Measures_measure_fecha_de_inicio_seleccionada":{"Binding":{"ConceptualEntity":"Inicio"},"State":"Generated","Roles":{"inicio":{"Target":{"Entity":"inicio"}},"v_Measures_measure.fecha_de_inicio_seleccionada":{"Target":{"Entity":"v_Measures_measure.fecha_de_inicio_seleccionada"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"inicio"},"Object":{"Role":"v_Measures_measure.fecha_de_inicio_seleccionada"}},"State":"Generated","Weight":0.99,"ID":"inicios_have_fecha_de_inicio_seleccionada"}]},"fin_has_date":{"Binding":{"ConceptualEntity":"Fin"},"State":"Generated","Roles":{"fin":{"Target":{"Entity":"fin"}},"fin.date":{"Target":{"Entity":"fin.date"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"fin"},"Object":{"Role":"fin.date"}},"State":"Generated","Weight":0.99,"ID":"fins_have_date_ends"}]},"inicio_has_date":{"Binding":{"ConceptualEntity":"Inicio"},"State":"Generated","Roles":{"inicio":{"Target":{"Entity":"inicio"}},"inicio.date":{"Target":{"Entity":"inicio.date"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"inicio"},"Object":{"Role":"inicio.date"}},"State":"Generated","Weight":0.99,"ID":"inicios_have_date_starts"}]},"date_table_has_month_n":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.month_n":{"Target":{"Entity":"date_table.month_n"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.month_n"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_month_Ns"}]},"date_table_has_year":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.year":{"Target":{"Entity":"date_table.year"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.year"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_years"}]},"date_table_has_month":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.month":{"Target":{"Entity":"date_table.month"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.month"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_months"}]},"date_table_has_date":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.date":{"Target":{"Entity":"date_table.date"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"date_table"},"Object":{"Role":"date_table.date"}},"State":"Generated","Weight":0.99,"ID":"date_tables_have_dates"}]},"amount_has_amount_value":{"Binding":{"ConceptualEntity":"Amount"},"State":"Generated","Roles":{"amount":{"Target":{"Entity":"amount"}},"amount.amount_value":{"Target":{"Entity":"amount.amount_value"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"amount"},"Object":{"Role":"amount.amount_value"}},"State":"Generated","Weight":0.99,"ID":"amounts_have_amount_value"}]},"amount_has_amount":{"Binding":{"ConceptualEntity":"Amount"},"State":"Generated","Roles":{"amount":{"Target":{"Entity":"amount"}},"amount.amount":{"Target":{"Entity":"amount.amount"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"amount"},"Object":{"Role":"amount.amount"}},"State":"Generated","Weight":0.99,"ID":"amounts_have_amounts"}]},"renewal_period_has_RenewalPeriod_value":{"Binding":{"ConceptualEntity":"Frecuencia"},"State":"Generated","Roles":{"renewal_period":{"Target":{"Entity":"renewal_period"}},"renewal_period.RenewalPeriod_value":{"Target":{"Entity":"renewal_period.RenewalPeriod_value"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"renewal_period"},"Object":{"Role":"renewal_period.RenewalPeriod_value"}},"State":"Generated","Weight":0.99,"ID":"frecuencias_have_frecuencia_value"}]},"renewal_period_has_renewal_period":{"Binding":{"ConceptualEntity":"Frecuencia"},"State":"Generated","Roles":{"renewal_period":{"Target":{"Entity":"renewal_period"}},"renewal_period.renewal_period":{"Target":{"Entity":"renewal_period.renewal_period"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"renewal_period"},"Object":{"Role":"renewal_period.renewal_period"}},"State":"Generated","Weight":0.99,"ID":"frecuencias_have_frecuencias"}]},"casa_propia_has_index":{"Binding":{"ConceptualEntity":"CasaPropia"},"State":"Generated","Roles":{"casa_propia":{"Target":{"Entity":"casa_propia"}},"casa_propia.index":{"Target":{"Entity":"casa_propia.index"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"casa_propia"},"Object":{"Role":"casa_propia.index"}},"State":"Generated","Weight":0.99,"ID":"casa_propias_have_indices"}]},"casa_propia_has_monthyear":{"Binding":{"ConceptualEntity":"CasaPropia"},"State":"Generated","Roles":{"casa_propia":{"Target":{"Entity":"casa_propia"}},"casa_propia.monthyear":{"Target":{"Entity":"casa_propia.monthyear"}}},"Phrasings":[{"Attribute":{"Subject":{"Role":"casa_propia"},"Object":{"Role":"casa_propia.monthyear"}},"State":"Generated","Weight":0.99,"ID":"casa_propias_have_monthyears"}]},"date_table_is_Updated_on_firstday":{"Binding":{"ConceptualEntity":"DateTable"},"State":"Generated","Roles":{"date_table":{"Target":{"Entity":"date_table"}},"date_table.firstday":{"Target":{"Entity":"date_table.firstday"}}},"SemanticSlots":{"When":{"Role":"date_table.firstday"}},"Phrasings":[{"Verb":{"Verbs":[{"Update":{"State":"Generated"}}],"Object":{"Role":"date_table"}},"State":"Generated","Weight":0.9,"ID":"date_tables_are_Updated_on_firstdays"}]}},"Agents":{"Internal":{"Version":"1.0.0"}}}
+				contentType: json
+
+		annotation __PBI_TimeIntelligenceEnabled = 0
+
+		annotation PBI_QueryOrder = ["CasaPropia","Monto","IPC_data"]
+
+		annotation PBI_ProTooling = ["TMDLView_Desktop","DaxQueryView_Desktop"]
+

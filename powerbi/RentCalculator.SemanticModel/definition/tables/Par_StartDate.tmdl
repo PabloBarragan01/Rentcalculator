@@ -1,0 +1,17 @@
+table Par_StartDate
+	lineageTag: b2f90d75-4991-481c-9255-98646cd5a707
+
+	column DateStart
+		formatString: Short Date
+		lineageTag: 2248ff7a-2655-4a10-bc3a-409c2b55c75f
+		summarizeBy: none
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Par_StartDate = calculated
+		mode: import
+		source = CALENDAR(MIN(Fact_IPCdata[indice_tiempo]), MAX('Fact_CasaPropia'[Mes]))
+
+	annotation PBI_Id = 3009b7fba7d948c7905d3370ffb951de
+

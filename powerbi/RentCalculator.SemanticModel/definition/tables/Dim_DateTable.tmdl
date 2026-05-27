@@ -1,0 +1,52 @@
+table Dim_DateTable
+	lineageTag: d859e997-5a50-42b5-b4c5-587019319e59
+
+	column Date
+		formatString: General Date
+		lineageTag: 5380dded-b751-4cd5-b2f7-f8a137b58a2e
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month = format(Dim_DateTable[Date],"mmmm")
+		lineageTag: 19dbebe0-38cb-4f9a-b8ce-71cc7c0a4e10
+		summarizeBy: none
+		sortByColumn: 'Month n'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year = format(Dim_DateTable[Date],"yyyy")
+		lineageTag: 17277740-4d7c-4b3a-b2b8-1ced91ad7b8d
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month n' = month(Dim_DateTable[Date])
+		formatString: 0
+		lineageTag: a68f169c-664a-48e5-83ff-889b8aaecfd3
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column firstday = STARTOFMONTH(Dim_DateTable[Date])
+		formatString: Short Date
+		lineageTag: fbd32b8e-ec39-4636-8266-2d9689adc39c
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Año Mes texto' = format(Dim_DateTable[Date],"mmm-yy")
+		lineageTag: bb1e99a4-fd3d-420a-911c-9da07c27883c
+		summarizeBy: none
+		sortByColumn: firstday
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dim_DateTable = calculated
+		mode: import
+		source = CALENDAR(MIN(Fact_IPCdata[indice_tiempo]), EOMONTH(MAX(Fact_IPCdata[indice_tiempo])+365,0))
+
+	annotation PBI_Id = ebb47c5f2de04ac9a299b4ea23326d0a
+

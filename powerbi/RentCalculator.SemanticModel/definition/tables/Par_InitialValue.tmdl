@@ -1,0 +1,28 @@
+table Par_InitialValue
+	lineageTag: ee8ffb39-f370-403f-aa19-9b1b0f8926bc
+
+	column Amount
+		dataType: int64
+		formatString: 0
+		lineageTag: 5603c0d7-76bc-4e7d-b036-2b4c797eb6ef
+		summarizeBy: sum
+		sourceColumn: Amount
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Par_InitialValue = m
+		mode: import
+		source =
+				let
+				    Source = {1..3000000},
+				    #"Converted to Table" = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+				    #"Renamed Columns" = Table.RenameColumns(#"Converted to Table",{{"Column1", "Monto"}}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Monto", Int64.Type}}),
+				    #"Renamed Columns1" = Table.RenameColumns(#"Changed Type",{{"Monto", "Amount"}})
+				in
+				    #"Renamed Columns1"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

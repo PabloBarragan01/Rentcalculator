@@ -1,0 +1,26 @@
+table Par_Frequency
+	lineageTag: 3fa2902a-af71-4afb-aa08-fc1cd0e05010
+
+	measure 'Frecuencia Value' = SELECTEDVALUE('Par_Frequency'[Frecuencia], 3)
+		formatString: 0
+		lineageTag: 0f47eaec-2052-42cb-bd1a-1a812fd393c8
+
+	column Frecuencia
+		formatString: 0
+		lineageTag: 7b6ba3b1-8048-483d-aac4-c88369514706
+		summarizeBy: none
+		sourceColumn: [Value]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 0
+				}
+
+		annotation SummarizationSetBy = User
+
+	partition Par_Frequency = calculated
+		mode: import
+		source = GENERATESERIES(3, 36, 3)
+
+	annotation PBI_Id = 0bd5cff924d547c19e63ef32a14f6eef
+
