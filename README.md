@@ -139,12 +139,10 @@ The reporting layer provides:
 Potential future enhancements include:
 * MERGE-based upsert logic
 * Historical versioning
-* Gold analytical layer
 * Automated testing
 * CI/CD integration
 * Data quality validation framework
 * Partition optimization
-* Near real-time ingestion
 
 ## Dashboard Preview
 <img width="1425" height="792" alt="image" src="https://github.com/user-attachments/assets/63ef6783-7222-4490-8b7a-823b2cc1f79b" />
