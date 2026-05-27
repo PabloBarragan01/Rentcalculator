@@ -86,6 +86,7 @@ All ETL notebooks generate execution logs including:
 
 ## Pipeline Orchestration
 ETL execution is orchestrated through Fabric Data Factory pipelines, enabling automated and repeatable data refresh workflows.
+<img width="1014" height="299" alt="image" src="https://github.com/user-attachments/assets/911ee0f1-0942-4e3f-a16b-82bdbb1b9635" />
 
 ## Repository Structure
 
